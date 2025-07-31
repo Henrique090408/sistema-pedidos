@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pedido - Restaurante</title>
+  <style>
+    :root {
+      --cor-principal: #006341;
+      --cor-secundaria: #f4f4f4;
+      --cor-destaque: #ffbb00;
+      --cor-texto: #333;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: var(--cor-secundaria);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: var(--cor-principal);
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+      color: var(--cor-texto);
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .item {
+      margin: 20px 0;
+      padding: 15px;
+      background: #fafafa;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .item-nome {
+      flex: 1;
+      font-size: 16px;
+    }
+
+    .item-controle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .item-controle button {
+      background-color: var(--cor-principal);
+      color: white;
+      border: none;
+      padding: 5px 12px;
+      font-size: 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .item-controle button:hover {
+      background-color: #004d31;
+    }
+
+    .entrega {
+      display: none;
+    }
+
+    #total {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 20px;
+      color: var(--cor-principal);
+    }
+
+    .botao-envio {
+      width: 100%;
+      margin-top: 25px;
+      background-color: var(--cor-destaque);
+      color: #000;
+      font-size: 18px;
+      font-weight: bold;
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .botao-envio:hover {
+      background-color: #e0a800;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Monte seu Pedido</h1>
+
+    <label>Nome do Cliente:</label>
+    <input type="text" id="nome" required>
+
+    <!-- NOVO CAMPO: HORÁRIO DE RETIRADA -->
+    <div id="horarioRetirada" style="display: none;">
+      <label>Horário para retirada:</label>
+      <input type="time" id="hora">
+    </div>
+
+    <!-- ITENS -->
+    <div class="item">
+      <div class="item-nome">Hambúrguer (R$ 20)</div>
+      <div class="item-controle">
+        <button onclick="alterarQuantidade('hamburguer', -1)">-</button>
+        <span id="hamburguer-qtde">0</span>
+        <button onclick="alterarQuantidade('hamburguer', 1)">+</button>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-nome">Pizza (R$ 35)</div>
+      <div class="item-controle">
+        <button onclick="alterarQuantidade('pizza', -1)">-</button>
+        <span id="pizza-qtde">0</span>
+        <button onclick="alterarQuantidade('pizza', 1)">+</button>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-nome">Refrigerante (R$ 6)</div>
+      <div class="item-controle">
+        <button onclick="alterarQuantidade('refri', -1)">-</button>
+        <span id="refri-qtde">0</span>
+        <button onclick="alterarQuantidade('refri', 1)">+</button>
+      </div>
+    </div>
+
+    <!-- ENTREGA -->
+    <label>Forma de Entrega:</label>
+    <select id="entrega" onchange="atualizaEntrega()">
+      <option value="retirada">Retirada no local</option>
+      <option value="tele">Tele-entrega</option>
+    </select>
+
+    <!-- DADOS ENTREGA -->
+    <div id="dadosEntrega" class="entrega">
+      <label>Rua:</label>
+      <input type="text" id="rua">
+
+      <label>Número:</label>
+      <input type="text" id="numero">
+
+      <label>Bairro:</label>
+      <select id="bairro" onchange="calcularTotal()">
+        <option value="">Selecione</option>
+        <option value="Centro">Centro - R$ 5</option>
+        <option value="Cohab">Cohab - R$ 7</option>
+        <option value="Industrial">Industrial - R$ 10</option>
+      </select>
+
+      <!-- NOVO: OBSERVAÇÃO PARA ENTREGA -->
+      <label>Observação para a entrega:</label>
+      <input type="text" id="obsEntrega">
+    </div>
+
+    <!-- NOVO: OBSERVAÇÃO PARA PEDIDO -->
+    <label>Observação para o pedido:</label>
+    <input type="text" id="obsPedido">
+
+    <!-- TOTAL E ENVIO -->
+    <div id="total">Total: R$ 0,00</div>
+    <button class="botao-envio" onclick="enviarPedido()">Enviar Pedido via WhatsApp</button>
+  </div>
+
+  <script>
+    const precos = {
+      hamburguer: 20,
+      pizza: 35,
+      refri: 6,
+      bairros: {
+        Centro: 5,
+        Cohab: 7,
+        Industrial: 10
+      }
+    };
+
+    const quantidades = {
+      hamburguer: 0,
+      pizza: 0,
+      refri: 0
+    };
+
+    function alterarQuantidade(item, valor) {
+      quantidades[item] += valor;
+      if (quantidades[item] < 0) quantidades[item] = 0;
+      document.getElementById(`${item}-qtde`).innerText = quantidades[item];
+      calcularTotal();
+    }
+
+    function atualizaEntrega() {
+      const entrega = document.getElementById("entrega").value;
+      const divEntrega = document.getElementById("dadosEntrega");
+      const divHorario = document.getElementById("horarioRetirada");
+
+      divEntrega.style.display = entrega === "tele" ? "block" : "none";
+      divHorario.style.display = entrega === "retirada" ? "block" : "none";
+
+      calcularTotal();
+    }
+
+    function calcularTotal() {
+      let total = quantidades.hamburguer * precos.hamburguer +
+                  quantidades.pizza * precos.pizza +
+                  quantidades.refri * precos.refri;
+
+      const tipoEntrega = document.getElementById("entrega").value;
+      const bairro = document.getElementById("bairro").value;
+      if (tipoEntrega === "tele" && precos.bairros[bairro]) {
+        total += precos.bairros[bairro];
+      }
+
+      document.getElementById("total").innerText = "Total: R$ " + total.toFixed(2).replace(".", ",");
+    }
+
+    function enviarPedido() {
+      const nome = document.getElementById("nome").value.trim();
+      const entrega = document.getElementById("entrega").value;
+      const rua = document.getElementById("rua").value;
+      const numero = document.getElementById("numero").value;
+      const bairro = document.getElementById("bairro").value;
+      const hora = document.getElementById("hora").value;
+      const obsEntrega = document.getElementById("obsEntrega").value.trim();
+      const obsPedido = document.getElementById("obsPedido").value.trim();
+      const total = document.getElementById("total").innerText;
+
+      let mensagem = `*Pedido de:* ${nome}%0A`;
+      if (quantidades.hamburguer > 0) mensagem += `Hambúrguer: ${quantidades.hamburguer}%0A`;
+      if (quantidades.pizza > 0) mensagem += `Pizza: ${quantidades.pizza}%0A`;
+      if (quantidades.refri > 0) mensagem += `Refrigerante: ${quantidades.refri}%0A`;
+
+      mensagem += `*Entrega:* ${entrega === "tele" ? "Tele-entrega" : "Retirada"}%0A`;
+
+      if (entrega === "tele") {
+        mensagem += `Endereço: ${rua}, nº ${numero} - ${bairro}%0A`;
+        if (obsEntrega) mensagem += `Obs entrega: ${obsEntrega}%0A`;
+      } else {
+        if (hora) mensagem += `Horário para retirada: ${hora}%0A`;
+      }
+
+      if (obsPedido) {
+        mensagem += `Obs pedido: ${obsPedido}%0A`;
+      }
+
+      mensagem += `*${total}*`;
+
+      const numeroAtendente = "5554996111619"; // Substitua com o número real da atendente
+      const link = `https://wa.me/${numeroAtendente}?text=${mensagem}`;
+      window.open(link, "_blank");
+    }
+
+    // Atualiza ao carregar
+    calcularTotal();
+    atualizaEntrega();
+  </script>
+</body>
